@@ -26,7 +26,7 @@ jobs:
       uses: docker/build-push-action@v2
       with:
         push: true
-        tags: your-dockerhub-username/wisecow:latest
+        tags: rameshxt/wisecow-d:24
 
   deploy:
     needs: build
@@ -47,5 +47,5 @@ jobs:
 
     - name: Deploy to Kubernetes
       run: |
-        kubectl apply -f wisecow-deployment.yaml
-        kubectl apply -f wisecow-service.yaml
+        kubectl apply -f deployment.yaml
+        kubectl apply -f service.yaml
