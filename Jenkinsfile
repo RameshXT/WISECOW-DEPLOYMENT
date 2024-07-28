@@ -9,10 +9,11 @@ pipeline
             {
                 script
                 {
-                    def workspaceDir = "/var/lib/jenkins/workspace/wisecow/"
+                    def workspaceDir = "/var/lib/jenkins/workspace/automation-wisecow/"
                     if (fileExists(workspaceDir))
                     {
                         sh "sudo rm -rf ${workspaceDir}*"
+                        echo "Workspace directory cleared, Ready to Run."
                     }
                     else 
                     {
@@ -25,39 +26,10 @@ pipeline
         {
             steps
             {
-                sh "sudo git clone https://github.com/RameshXT/wisecow.git"
-            }
-        }
-        stage("Deleting existing images and containers")
-        {
-            steps
-            {
-                script
+                withCredentials([usernamePassword(credentialsId: 'GITHUB-ID', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')])
                 {
-                    def containers = sh(script: "sudo docker ps -a -q", returnStdout: true).trim().split('\n')
-                    
-                    if (containers[0])
-                    {
-                        sh "sudo docker stop ${containers.join(' ')}"
-                        sh "sudo docker rm -f ${containers.join(' ')}"
-                        echo "Containers successfully deleted!!"
-                    }
-                    else
-                    {
-                        echo "No containers are there to delete!!"
-                    }
-                    
-                    def images = sh(script: "sudo docker images -q", returnStdout: true).trim().split('\n')
-                    
-                    if (images[0])
-                    {
-                        sh "sudo docker rmi -f ${images.join(' ')}"
-                        echo "Images successfully deleted!!"
-                    }
-                    else
-                    {
-                        echo "No images are there to delete!!"
-                    }
+                    sh '''sudo git clone https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/RameshXT/WISECOW-DEPLOYMENT.git -b wisecow'''
+                    echo "The WISECOW-DEPLOYMENT was cloned successfully"
                 }
             }
         }
@@ -68,33 +40,19 @@ pipeline
                     script
                     {
                         def dockerImageTag = "rameshxt/wisecow-d:${BUILD_NUMBER}"
-                        
-                        sh "sudo docker build -t ${dockerImageTag} /var/lib/jenkins/workspace/wisecow/wisecow"
+                        sh "sudo docker build -t ${dockerImageTag} /var/lib/jenkins/workspace/automation-wisecow/WISECOW-DEPLOYMENT"
+                        echo "The Docker ${dockerImageTag} was successfully built"
                     }
                 }
-        }
-
-        stage("Running docker images")
-        {
-            steps
-            {
-                script
-                {
-                    def dockerImageTag = "rameshxt/wisecow-d:${BUILD_NUMBER}"
-                    
-                    sh "sudo docker run -itd --name wisecowcont -p 4499:4499 ${dockerImageTag}"
-                    
-                    echo "Docker container 'wisecow' running successfully."
-                }
-            }
         }
         stage("Docker login")
         {
             steps
             {
-                withCredentials([string(credentialsId: 'DockerId', variable: 'Docker')])
+                withCredentials([string(credentialsId: 'Docker-D', variable: 'Dockerlogin')])
                 {
-                    sh '''echo "$Docker" | sudo docker login -u rameshxt --password-stdin'''
+                    sh '''echo "$Dockerlogin" | sudo docker login -u rameshxt --password-stdin'''
+                    echo "Logged into DockerHub successfully"
                 } 
             }
         }
@@ -105,10 +63,27 @@ pipeline
                 script
                 {
                     def dockerImageTag = "rameshxt/wisecow-d:${BUILD_NUMBER}"
-                    
                     sh "sudo docker push ${dockerImageTag}"
-                    
-                    echo "Docker image ${dockerImageTag} pushed to DockerHub successfully."
+                    echo "Docker images ${dockerImageTag} pushed into Docker Hub successfully"
+                }
+            }
+        }
+        stage("Deleting image")
+        {
+            steps
+            {
+                script
+                {
+                    def images = sh(script: "sudo docker images -q", returnStdout: true).trim().split('\n')
+                    if (images[0])
+                    {
+                        sh "sudo docker rmi -f ${images.join(' ')}"
+                        echo "Images were deleted successfully"
+                    }
+                    else
+                    {
+                        echo "No images are there to delete!!"
+                    }
                 }
             }
         }  
