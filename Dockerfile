@@ -1,15 +1,12 @@
-FROM ubuntu:latest
+FROM ubuntu:20.04
 
-ENV PATH="/usr/games:/usr/local/games:$PATH"
+RUN apt-get update -y && \
+    apt-get install -y fortune-mod cowsay bash curl
 
-RUN apt-get update && \
-    apt-get install -y apt-utils && \
-    apt-get install -y fortune-mod cowsay netcat-openbsd
+WORKDIR /app
 
-COPY src/wisecow.sh /usr/local/bin/wisecow.sh
-
-RUN chmod +xr /usr/local/bin/wisecow.sh
+COPY . .
 
 EXPOSE 4499
 
-CMD ["/usr/local/bin/wisecow.sh"]
+CMD ["bash", "wisecow.sh"]

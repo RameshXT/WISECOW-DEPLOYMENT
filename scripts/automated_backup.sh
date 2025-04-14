@@ -28,3 +28,4 @@ fi
 
 # Output running processes
 echo "Number of running processes: $RUNNING_PROCESSES"
+

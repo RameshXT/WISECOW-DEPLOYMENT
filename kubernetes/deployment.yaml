@@ -16,6 +16,13 @@ spec:
     spec:
       containers:
       - name: wisecow
-        image: rameshxt/wisecow-d:24
+        image: IMAGE_TAG
         ports:
         - containerPort: 4499
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
