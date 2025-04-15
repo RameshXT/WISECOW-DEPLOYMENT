@@ -1,13 +1,11 @@
 FROM ubuntu:20.04
 
 RUN apt-get update -y && \
-    apt-get install -y fortune-mod cowsay bash curl
+    apt-get install -y fortune-mod cowsay bash curl netcat
 
 WORKDIR /app
 
 COPY . .
-
-RUN chmod +x wisecow.sh
 
 EXPOSE 4499
 
