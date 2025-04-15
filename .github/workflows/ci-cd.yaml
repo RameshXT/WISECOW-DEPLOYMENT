@@ -1,4 +1,6 @@
-#Git Pipeline
+# DOCKERIMAGE --> SSH TO EC2 --> K8S DEPLOY --> TLS --> MONITOR SCRIPTS --> HEALTH CHECK
+
+
 name: CI/CD Pipeline
 
 on:
@@ -9,56 +11,158 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v1
+      with:
+        username: ${{ secrets.DOCKER_HUB_USERNAME }}
+        password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: Dockerfile
-          push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/your-image:latest
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v2
+      with:
+        push: true
+        tags: rameshxt/wisecow-d:24
+
+    - name: Set up SSH key
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.EC2_IP }} >> ~/.ssh/known_hosts
+
+    - name: SSH into EC2 and deploy
+      run: |
+        ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_IP }} << 'EOF'
+          cd /home/${{ secrets.EC2_USER }}/your-app-directory
+          git pull origin main
+          docker-compose down
+          docker-compose up -d --build
+        EOF
 
   deploy:
-    runs-on: ubuntu-latest
     needs: build
+    runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Install kubectl
-        run: |
-          curl -LO "https://dl.k8s.io/release/v1.27.3/bin/linux/amd64/kubectl"
-          chmod +x ./kubectl
-          sudo mv ./kubectl /usr/local/bin/kubectl
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v1
+      with:
+        version: 'latest'
 
-      - name: Install kind
-        run: |
-          curl -Lo ./kind https://kind.sigs.k8s.io/dl/latest/kind-linux-amd64
-          chmod +x ./kind
-          sudo mv ./kind /usr/local/bin/kind
+    - name: Configure kubectl
+      run: |
+        echo "${{ secrets.KUBE_CONFIG }}" > $HOME/.kube/config
 
-      - name: Create Kind cluster
-        run: |
-          kind create cluster --config kind-config.yaml
+    - name: Deploy to Kubernetes
+      run: |
+        kubectl apply -f deployment.yaml
+        kubectl apply -f service.yaml
 
-      - name: Configure Kubernetes context
-        run: |
-          kubectl cluster-info --context kind-wisecow-cluster
 
-      - name: Deploy to Kubernetes
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+name: Medusa CD Pipeline
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: CODE CHECKOUT
+        uses: actions/checkout@v2
+
+      - name: SET UP DOCKER BUILDx
+        uses: docker/setup-buildx-action@v3
+
+      - name: LOGIN DOCKER HUB
         run: |
-          kubectl apply -f k8s/deployment.yaml
-          kubectl apply -f k8s/service.yaml
-          kubectl apply -f k8s/ingress.yaml
+          echo "Logging into Docker Hub.."
+          echo ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+          echo "Logged in to Docker Hub."
+
+      - name: BUILD DOCKER IMAGE
+        run: |
+          IMAGE_TAG="rameshxt/medusa-backend:v1.0.${GITHUB_RUN_NUMBER}"
+          echo "Building Docker image with tag: $IMAGE_TAG"
+          docker build -t $IMAGE_TAG .
+          echo "Image build complete."
+
+      - name: PUSH DOCKER IMAGES..
+        run: |
+          IMAGE_TAG="rameshxt/medusa-backend:v1.0.${GITHUB_RUN_NUMBER}"
+          echo "Pushing Docker image: $IMAGE_TAG"
+          docker push "$IMAGE_TAG"
+          echo "Image pushed to Docker Hub."
+
+      - name: UPDATE IMAGE TAG IN ecs.tf
+        run: |
+          IMAGE_TAG="rameshxt/medusa-backend:v1.0.${GITHUB_RUN_NUMBER}"
+          echo "Updating image tag in ecs.tf with: $IMAGE_TAG"
+          bash image-updater.sh "$IMAGE_TAG"
+          echo "ecs.tf updated successfully."
+
+      - name: INSTALL TERRAFORM
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+          terraform_version: latest
+
+      - name: CONFIGURE AWS CLI
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: DEPLOY TO AWS ECS USING TERRAFORM
+        run: |
+          echo "Starting Terraform deployment.."
+          cd terraform
+          terraform init
+          echo "Terraform initialized."
+
+          terraform validate
+          echo "Terraform configuration validated."
+
+          terraform plan
+          echo "Terraform plan generated."
+
+          terraform apply -auto-approve
+          echo "Infrastructure deployed to AWS ECS."
+
+      - name: PRINT ALB DNS NAME
+        run: |
+          cd terraform
+          ALB_URL=$(terraform output -raw alb_dns_name)
+          echo "🎉 Medusa backend deployed successfully!"
+          echo "🌐 Access it here: http://${ALB_URL}/app"
