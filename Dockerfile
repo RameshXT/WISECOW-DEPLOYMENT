@@ -1,22 +1,17 @@
-# Use the official Python image.
-FROM python:3.9-slim
+FROM debian:bullseye-slim
 
-RUN apt-get update && apt-get install -y fortune
+RUN apt-get update && apt-get install -y cowsay fortune netcat-openbsd
 
-# Set the working directory in the container.
+RUN  rm -rf /var/lib/apt/lists/*
+
+COPY wisecow.sh /app/wisecow.sh
+
 WORKDIR /app
 
-# Copy the requirements file into the container.
-COPY requirements.txt .
+ENV PATH="/usr/games:${PATH}"
 
-# Install the dependencies.
-RUN pip install -r requirements.txt
+RUN chmod +x wisecow.sh
 
-# Copy the rest of the application code into the container.
-COPY . .
+EXPOSE 4499
 
-# Expose the port that the application will run on.
-EXPOSE 80
-
-# Define the command to run the application.
-CMD ["python", "app.py"]
+CMD ["./wisecow.sh"]
