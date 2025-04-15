@@ -1,20 +1,13 @@
-# Base image
-FROM alpine:latest
+FROM python:3.9-slim
 
-# Install bash
-RUN apk add --no-cache bash
-
-# Set the working directory
 WORKDIR /app
 
-# Copy the shell script
-COPY wisecow.sh .
+COPY requirements.txt .
 
-# Set execute permissions
-RUN chmod +x wisecow.sh
+RUN pip install -r requirements.txt
 
-# Expose the application port
-EXPOSE 4499
+COPY . .
 
-# Run the script using bash
-CMD ["bash", "wisecow.sh"]
+EXPOSE 80
+
+CMD ["python", "app.py"]
