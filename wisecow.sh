@@ -1,8 +1,45 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Print a message using figlet and cowsay
-echo "Launching Wisecow app..." | figlet | cowsay
+SRVPORT=4499
+RSPFILE=response
 
-# Start a simple HTTP server on port 4499 to keep the container running
-echo "Wisecow server is running on port 4499"
-python3 -m http.server 4499
+rm -f $RSPFILE
+mkfifo $RSPFILE
+
+get_api() {
+    read line
+    echo $line
+}
+
+handleRequest() {
+    get_api
+    mod=`fortune`
+
+cat <<EOF > $RSPFILE
+HTTP/1.1 200 OK
+Content-Type: text/html; charset=UTF-8
+
+<pre>`cowsay $mod`</pre>
+EOF
+}
+
+prerequisites() {
+    command -v cowsay >/dev/null 2>&1 &&
+    command -v fortune >/dev/null 2>&1 || 
+        { 
+            echo "Install prerequisites."
+            exit 1
+        }
+}
+
+main() {
+    prerequisites
+    echo "Wisdom served on port=$SRVPORT..."
+
+    while [ 1 ]; do
+        cat $RSPFILE | nc -lN $SRVPORT | handleRequest
+        sleep 0.01
+    done
+}
+
+main
