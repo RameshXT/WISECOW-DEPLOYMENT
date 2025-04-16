@@ -1,0 +1,22 @@
+./tsconfig.tsbuildinfo
+
+# Terraform data
+.terraform/
+
+# Ignore Terraform state files
+*.tfstate
+*.tfstate.*
+
+# Ignore variable override files (often contain secrets)
+*.tfvars
+*.tfvars.json
+
+# Ignore plan files
+*.plan
+
+# Ignore backup files
+*.backup
+
+# Ignore CLI config files
+.terraformrc
+terraform.rc
