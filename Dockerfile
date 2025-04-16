@@ -1,11 +1,15 @@
 FROM alpine:3.18
 
-# Install necessary packages in Alpine
+# Install necessary packages in Alpine, including Node.js and npm for cowsay
 RUN apk add --no-cache \
     bash \
-    cowsay \
     fortune \
-    netcat-openbsd
+    netcat-openbsd \
+    nodejs \
+    npm
+
+# Install cowsay via npm
+RUN npm install -g cowsay
 
 RUN  rm -rf /var/lib/apt/lists/*
 
