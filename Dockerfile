@@ -6,9 +6,11 @@ RUN  rm -rf /var/lib/apt/lists/*
 
 COPY wisecow.sh /app/wisecow.sh
 
-WORKDIR /app
+RUN sed -i 's/\r//' /app/wisecow.sh
 
 RUN chmod +x wisecow.sh
+
+WORKDIR /app
 
 EXPOSE 4499
 
