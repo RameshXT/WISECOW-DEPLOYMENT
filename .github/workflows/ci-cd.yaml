@@ -59,7 +59,7 @@ jobs:
             docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}' | grep -v 'gcr.io/k8s-minikube/kicbase:v0.0.46' | awk '{print $2}' | xargs -r docker rmi -f || true
 
             echo "Clone the repository..."
-            sudo git clone https://github.com/RameshXT/WISECOW-DEPLOYMENT.git
+            git clone https://github.com/RameshXT/WISECOW-DEPLOYMENT.git
 
             echo "UPDATE IMAGE TAG IN Deployment.yaml"
             cd /home/ec2-user/WISECOW-DEPLOYMENT
