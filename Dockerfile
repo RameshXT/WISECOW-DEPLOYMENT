@@ -1,24 +1,14 @@
-FROM alpine:3.18
+FROM ubuntu:22.04
 
-# Install necessary packages, including coreutils to ensure utilities like rm and mkfifo are available
-RUN apk add --no-cache \
-    bash \
-    fortune \
-    netcat-openbsd \
-    nodejs \
-    npm \
-    coreutils
+RUN apt-get update && apt-get install -y bash cowsay fortune netcat-openbsd
 
-# Install cowsay via npm
-RUN npm install -g cowsay
+RUN  rm -rf /var/lib/apt/lists/*
 
 COPY wisecow.sh /app/wisecow.sh
 
-RUN sed -i 's/\r//' /app/wisecow.sh
-
-RUN chmod +x /app/wisecow.sh
-
 WORKDIR /app
+
+RUN chmod +x wisecow.sh
 
 EXPOSE 4499
 
