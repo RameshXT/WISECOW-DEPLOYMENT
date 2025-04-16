@@ -2,6 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: wisecow-deployment
+  labels:
+    app: wisecow
 spec:
   replicas: 1
   selector:
@@ -13,7 +15,17 @@ spec:
         app: wisecow
     spec:
       containers:
-      - name: wisecow
-        image: ${{ secrets.DOCKER_HUB_USERNAME }}/wisecow:latest
-        ports:
-        - containerPort: 4499
+        - name: wisecow-container
+          image: rameshxt/wisecow:base
+          ports:
+            - containerPort: 4499
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+          env:
+            - name: PATH
+              value: "/usr/games:${PATH}"
