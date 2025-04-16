@@ -1,7 +1,3 @@
-# FROM debian:bullseye-slim
-
-# RUN apt-get update && apt-get install -y bash cowsay fortune netcat-openbsd
-
 FROM alpine:3.18
 
 # Install necessary packages in Alpine
