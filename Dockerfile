@@ -1,16 +1,16 @@
 FROM alpine:3.18
 
+# Install necessary packages, including coreutils to ensure utilities like rm and mkfifo are available
 RUN apk add --no-cache \
     bash \
     fortune \
     netcat-openbsd \
     nodejs \
     npm \
-    coreutils 
-    
-RUN npm install -g cowsay
+    coreutils
 
-RUN apk add --no-cache --upgrade bash
+# Install cowsay via npm
+RUN npm install -g cowsay
 
 COPY wisecow.sh /app/wisecow.sh
 
@@ -22,6 +22,6 @@ WORKDIR /app
 
 EXPOSE 4499
 
-CMD ["/bin/bash", "./wisecow.sh"]
+CMD ["./wisecow.sh"]
 
 ENV PATH="/usr/games:${PATH}"
