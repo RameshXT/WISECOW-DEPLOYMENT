@@ -80,22 +80,3 @@ jobs:
             kubectl apply -f /home/ec2-user/WISECOW-DEPLOYMENT/k8s/service.yaml
 
             echo "✅ Deployment completed successfully."
-
-      - name: Set up kubectl
-        uses: azure/setup-kubectl@v1
-        with:
-          version: 'latest'
-  
-      - name: Set up kubeconfig
-        run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
-  
-      - name: Get pod name
-        run: |
-          POD_NAME=$(kubectl get pods --selector=app=wisecow-deployment -o jsonpath='{.items[0].metadata.name}')
-          echo "Pod Name: $POD_NAME"
-  
-      - name: Get pod logs
-        run: |
-          kubectl logs $POD_NAME
