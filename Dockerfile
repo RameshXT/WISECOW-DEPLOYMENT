@@ -11,6 +11,8 @@ RUN apk add --no-cache \
 # Install cowsay via npm
 RUN npm install -g cowsay
 
+RUN sed -i 's/\r//' /app/wisecow.sh
+
 RUN  rm -rf /var/lib/apt/lists/*
 
 COPY wisecow.sh /app/wisecow.sh
