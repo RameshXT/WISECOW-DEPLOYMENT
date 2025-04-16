@@ -5,10 +5,11 @@ RUN apk add --no-cache \
     fortune \
     netcat-openbsd \
     nodejs \
-    npm && \
-    ln -s /bin/bash /usr/bin/bash
+    npm
 
 RUN npm install -g cowsay
+
+RUN apk add --no-cache bash && ln -s /bin/bash /usr/bin/bash
 
 COPY wisecow.sh /app/wisecow.sh
 
