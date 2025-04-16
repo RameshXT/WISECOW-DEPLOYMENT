@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: wisecow-container
-          image: rameshxt/wisecow:base
+          image: rameshxt/wisecow:v1.0.0
           ports:
             - containerPort: 4499
           resources:
