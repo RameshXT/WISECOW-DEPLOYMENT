@@ -1,6 +1,15 @@
-FROM debian:bullseye-slim
+# FROM debian:bullseye-slim
 
-RUN apt-get update && apt-get install -y bash cowsay fortune netcat-openbsd
+# RUN apt-get update && apt-get install -y bash cowsay fortune netcat-openbsd
+
+FROM alpine:3.18
+
+# Install necessary packages in Alpine
+RUN apk add --no-cache \
+    bash \
+    cowsay \
+    fortune \
+    netcat-openbsd
 
 RUN  rm -rf /var/lib/apt/lists/*
 
