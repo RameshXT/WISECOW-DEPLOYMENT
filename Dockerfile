@@ -1,6 +1,5 @@
 FROM alpine:3.18
 
-# Install necessary packages in Alpine, including Node.js and npm for cowsay
 RUN apk add --no-cache \
     bash \
     fortune \
@@ -8,18 +7,15 @@ RUN apk add --no-cache \
     nodejs \
     npm
 
-# Install cowsay via npm
 RUN npm install -g cowsay
-
-RUN sed -i 's/\r//' /app/wisecow.sh
-
-RUN  rm -rf /var/lib/apt/lists/*
 
 COPY wisecow.sh /app/wisecow.sh
 
-WORKDIR /app
+RUN sed -i 's/\r//' /app/wisecow.sh
 
-RUN chmod +x wisecow.sh
+RUN chmod +x /app/wisecow.sh
+
+WORKDIR /app
 
 EXPOSE 4499
 
