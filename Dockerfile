@@ -8,7 +8,7 @@ COPY wisecow.sh /app/wisecow.sh
 
 RUN sed -i 's/\r//' /app/wisecow.sh
 
-RUN chmod +x wisecow.sh
+RUN chmod +x /app/wisecow.sh
 
 WORKDIR /app
 
