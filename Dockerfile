@@ -8,10 +8,10 @@ COPY wisecow.sh /app/wisecow.sh
 
 WORKDIR /app
 
-ENV PATH="/usr/games:${PATH}"
-
 RUN chmod +x wisecow.sh
 
 EXPOSE 4499
 
 CMD ["./wisecow.sh"]
+
+ENV PATH="/usr/games:${PATH}"
