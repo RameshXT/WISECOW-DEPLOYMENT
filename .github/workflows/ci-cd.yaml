@@ -42,8 +42,11 @@ jobs:
           host: ${{ secrets.EC2_IP }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          envs: IMAGE_TAG
           script: |
             set -e
+            echo "IMAGE_TAG is: $IMAGE_TAG"
+
             echo "Cleaning EC2 instance and preserving Minikube..."
 
             echo "Removing WISECOW-DEPLOYMENT directory..."
