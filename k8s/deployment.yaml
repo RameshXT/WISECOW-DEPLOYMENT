@@ -17,6 +17,7 @@ spec:
       containers:
         - name: wisecow-container
           image: IMAGE_TAG
+          imagePullPolicy: Always
           ports:
             - containerPort: 4499
           resources:
