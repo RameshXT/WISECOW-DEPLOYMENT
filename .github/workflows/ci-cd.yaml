@@ -1,97 +1,9 @@
-# DOCKERIMAGE --> SSH TO EC2 --> K8S DEPLOY --> TLS --> MONITOR SCRIPTS --> HEALTH CHECK
-
-
 name: CI/CD Pipeline
 
 on:
   push:
     branches:
-      - main
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1
-
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v1
-      with:
-        username: ${{ secrets.DOCKER_HUB_USERNAME }}
-        password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v2
-      with:
-        push: true
-        tags: rameshxt/wisecow-d:24
-
-    - name: Set up SSH key
-      run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H ${{ secrets.EC2_IP }} >> ~/.ssh/known_hosts
-
-    - name: SSH into EC2 and deploy
-      run: |
-        ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_IP }} << 'EOF'
-          cd /home/${{ secrets.EC2_USER }}/your-app-directory
-          git pull origin main
-          docker-compose down
-          docker-compose up -d --build
-        EOF
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-
-    - name: Set up kubectl
-      uses: azure/setup-kubectl@v1
-      with:
-        version: 'latest'
-
-    - name: Configure kubectl
-      run: |
-        echo "${{ secrets.KUBE_CONFIG }}" > $HOME/.kube/config
-
-    - name: Deploy to Kubernetes
-      run: |
-        kubectl apply -f deployment.yaml
-        kubectl apply -f service.yaml
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-name: Medusa CD Pipeline
-
-on:
-  push:
-    branches:
-      - master
+      - wisecow
 
 jobs:
   build_and_deploy:
@@ -110,59 +22,57 @@ jobs:
           echo ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
           echo "Logged in to Docker Hub."
 
-      - name: BUILD DOCKER IMAGE
-        run: |
-          IMAGE_TAG="rameshxt/medusa-backend:v1.0.${GITHUB_RUN_NUMBER}"
-          echo "Building Docker image with tag: $IMAGE_TAG"
-          docker build -t $IMAGE_TAG .
-          echo "Image build complete."
+      - name: BUILD AND PUSH DOCKER IMAGE
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          tags: rameshxt/wisecow:v1.0.${{ github.run_number }}
+          context: .
 
-      - name: PUSH DOCKER IMAGES..
+      - name: UPDATE IMAGE TAG IN Deployment.yaml
         run: |
-          IMAGE_TAG="rameshxt/medusa-backend:v1.0.${GITHUB_RUN_NUMBER}"
-          echo "Pushing Docker image: $IMAGE_TAG"
-          docker push "$IMAGE_TAG"
-          echo "Image pushed to Docker Hub."
-
-      - name: UPDATE IMAGE TAG IN ecs.tf
-        run: |
-          IMAGE_TAG="rameshxt/medusa-backend:v1.0.${GITHUB_RUN_NUMBER}"
-          echo "Updating image tag in ecs.tf with: $IMAGE_TAG"
+          IMAGE_TAG="rameshxt/wisecow:v1.0.${GITHUB_RUN_NUMBER}"
+          echo "Updating image tag in deployment.yam with: $IMAGE_TAG"
           bash image-updater.sh "$IMAGE_TAG"
-          echo "ecs.tf updated successfully."
+          echo "deployment.yaml updated successfully."
 
-      - name: INSTALL TERRAFORM
-        uses: hashicorp/setup-terraform@v3
+      - name: SSH into EC2 and deploy
+        uses: appleboy/ssh-action@v0.1.5
         with:
-          terraform_wrapper: false
-          terraform_version: latest
+          host: ${{ secrets.EC2_IP }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            echo "Cleaning EC2 instance and preserving Minikube..."
 
-      - name: CONFIGURE AWS CLI
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+            echo "Removing WISECOW-DEPLOYMENT directory..."
+            sudo rm -rf /home/ec2-user/WISECOW-DEPLOYMENT
 
-      - name: DEPLOY TO AWS ECS USING TERRAFORM
-        run: |
-          echo "Starting Terraform deployment.."
-          cd terraform
-          terraform init
-          echo "Terraform initialized."
+            echo "Stopping all containers except 'minikube'..."
+            docker ps -a --format '{{.ID}} {{.Names}}' | grep -v minikube | awk '{print $1}' | xargs -r docker stop || true
 
-          terraform validate
-          echo "Terraform configuration validated."
+            echo "Removing all containers except 'minikube'..."
+            docker ps -a --format '{{.ID}} {{.Names}}' | grep -v minikube | awk '{print $1}' | xargs -r docker rm || true
 
-          terraform plan
-          echo "Terraform plan generated."
+            echo "Removing all images except 'gcr.io/k8s-minikube/kicbase:v0.0.46'..."
+            docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}' | grep -v 'gcr.io/k8s-minikube/kicbase:v0.0.46' | awk '{print $2}' | xargs -r docker rmi -f || true
 
-          terraform apply -auto-approve
-          echo "Infrastructure deployed to AWS ECS."
+            echo "Clone the repository..."
+            sudo git clone https://github.com/RameshXT/WISECOW-DEPLOYMENT.git
 
-      - name: PRINT ALB DNS NAME
-        run: |
-          cd terraform
-          ALB_URL=$(terraform output -raw alb_dns_name)
-          echo "🎉 Medusa backend deployed successfully!"
-          echo "🌐 Access it here: http://${ALB_URL}/app"
+            echo "UPDATE IMAGE TAG IN Deployment.yaml"
+            cd /home/ec2-user/WISECOW-DEPLOYMENT
+            bash image-updater.sh "$IMAGE_TAG"
+
+            echo "Deploying the application on Kubernetes..."
+            kubectl apply -f /home/ec2-user/WISECOW-DEPLOYMENT/k8s/deployment.yaml
+            kubectl apply -f /home/ec2-user/WISECOW-DEPLOYMENT/k8s/service.yaml
+
+            echo "Deployment completed successfully."
+            # echo "Waiting for the service to be available..."
+            # while ! kubectl get service wisecow-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}'; do
+            #   echo "Waiting for the service to be available..."
+            #   sleep 10
+            # done
+            # echo "Service is available."
