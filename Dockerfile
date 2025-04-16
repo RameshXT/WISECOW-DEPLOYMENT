@@ -9,7 +9,7 @@ RUN apk add --no-cache \
 
 RUN npm install -g cowsay
 
-RUN apk add --no-cache bash && ln -s /bin/bash /usr/bin/bash
+RUN apk add --no-cache --upgrade bash
 
 COPY wisecow.sh /app/wisecow.sh
 
