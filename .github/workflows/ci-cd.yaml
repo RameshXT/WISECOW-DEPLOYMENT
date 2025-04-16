@@ -47,9 +47,10 @@ jobs:
             set -e
             echo "IMAGE_TAG is: $IMAGE_TAG"
 
-            echo "Cleaning EC2 instance and preserving Minikube..."
-
-            echo "Removing WISECOW-DEPLOYMENT directory..."
+            ##################################################
+            # 1. CLEAN EC2 INSTANCE (Preserve Minikube)
+            ##################################################
+            echo "Removing old project directory..."
             sudo rm -rf /home/ec2-user/WISECOW-DEPLOYMENT
 
             echo "Stopping all containers except 'minikube'..."
@@ -61,21 +62,26 @@ jobs:
             echo "Removing all images except 'gcr.io/k8s-minikube/kicbase:v0.0.46'..."
             docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}' | grep -v 'gcr.io/k8s-minikube/kicbase:v0.0.46' | awk '{print $2}' | xargs -r docker rmi -f || true
 
-            echo "Clone the repository..."
+            ##################################################
+            # 2. CLONE REPOSITORY
+            ##################################################
+            echo "Cloning WISECOW-DEPLOYMENT repository..."
             git clone https://github.com/RameshXT/WISECOW-DEPLOYMENT.git
 
-            echo "UPDATE IMAGE TAG IN Deployment.yaml"
+            ##################################################
+            # 3. UPDATE DEPLOYMENT FILE WITH IMAGE TAG
+            ##################################################
+            echo "Updating image tag in deployment.yaml..."
             cd /home/ec2-user/WISECOW-DEPLOYMENT
+            chmod +x image-updater.sh
             bash image-updater.sh "$IMAGE_TAG"
 
-            echo "Deploying the application on Kubernetes..."
+            ##################################################
+            # 4. APPLY KUBERNETES MANIFESTS
+            ##################################################
+            echo "Deploying application on Kubernetes..."
             kubectl apply -f /home/ec2-user/WISECOW-DEPLOYMENT/k8s/deployment.yaml
             kubectl apply -f /home/ec2-user/WISECOW-DEPLOYMENT/k8s/service.yaml
 
-            echo "Deployment completed successfully."
-            # echo "Waiting for the service to be available..."
-            # while ! kubectl get service wisecow-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}'; do
-            #   echo "Waiting for the service to be available..."
-            #   sleep 10
-            # done
-            # echo "Service is available."
+            echo "✅ Deployment completed successfully."
+
