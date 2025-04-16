@@ -5,8 +5,9 @@ RUN apk add --no-cache \
     fortune \
     netcat-openbsd \
     nodejs \
-    npm
-
+    npm \
+    coreutils 
+    
 RUN npm install -g cowsay
 
 RUN apk add --no-cache --upgrade bash
