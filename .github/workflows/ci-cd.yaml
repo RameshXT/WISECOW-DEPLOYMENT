@@ -81,37 +81,21 @@ jobs:
 
             echo "✅ Deployment completed successfully."
 
-      - name: Set up Kubernetes
+      - name: Set up kubectl
         uses: azure/setup-kubectl@v1
         with:
-          kubeconfig: ${{ secrets.KUBECONFIG }}
+          version: 'latest'
   
-      - name: Get Pod Name dynamically
-        id: get_pod_name
+      - name: Set up kubeconfig
         run: |
-          # Get the pod name of the running pod (assumes only one pod in the deployment)
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
+  
+      - name: Get pod name
+        run: |
           POD_NAME=$(kubectl get pods --selector=app=wisecow-deployment -o jsonpath='{.items[0].metadata.name}')
-          echo "POD_NAME=$POD_NAME" >> $GITHUB_ENV  # Set the pod name as an environment variable
+          echo "Pod Name: $POD_NAME"
   
-      - name: Wait for Pod to be Ready or Error
+      - name: Get pod logs
         run: |
-          # Wait for the pod to reach a ready state or an error state
-          while true; do
-            STATUS=$(kubectl get pod ${{ env.POD_NAME }} -o jsonpath='{.status.phase}')
-            echo "Pod status: $STATUS"
-            if [ "$STATUS" == "Running" ] || [ "$STATUS" == "Failed" ]; then
-              echo "Pod is either Running or Failed. Proceeding to get logs."
-              break
-            fi
-            echo "Waiting for pod to be ready or error state..."
-            sleep 5
-          done
-  
-      - name: Get Logs for Dynamic Pod
-        run: |
-          kubectl logs ${{ env.POD_NAME }}  # Use the dynamic pod name
-  
-      - name: Check for Pod Error Logs
-        run: |
-          # Check for possible error logs if the pod has failed
-          kubectl logs ${{ env.POD_NAME }} --previous || echo "No previous logs found"
+          kubectl logs $POD_NAME
