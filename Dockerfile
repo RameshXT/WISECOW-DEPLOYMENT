@@ -11,6 +11,8 @@ RUN apt-get update && apt-get install -y \
     procps && \
     rm -rf /var/lib/apt/lists/*
 
+ENV PATH="${PATH}:/usr/sbin"
+
 COPY wisecow.sh /app/wisecow.sh
 RUN sed -i 's/\r//' /app/wisecow.sh
 RUN chmod +x /app/wisecow.sh
