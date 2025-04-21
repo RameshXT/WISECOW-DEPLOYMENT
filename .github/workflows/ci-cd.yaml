@@ -75,6 +75,10 @@ jobs:
             ##################################################
             # 4. APPLY KUBERNETES MANIFESTS
             ##################################################
+            echo "Deleting old Kubernetes resources..."
+            kubectl delete deployment wisecow-deployment
+            kubectl delete service wisecow-service
+
             echo "Deploying application on Kubernetes..."
             kubectl apply -f /home/ec2-user/WISECOW-DEPLOYMENT/k8s/deployment.yaml
             kubectl apply -f /home/ec2-user/WISECOW-DEPLOYMENT/k8s/service.yaml
