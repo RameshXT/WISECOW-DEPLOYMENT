@@ -14,6 +14,6 @@ WORKDIR /app
 
 EXPOSE 4499
 
-CMD ["bash", "./wisecow.sh"]
+CMD ["/usr/bin/bash", "/app/wisecow.sh"]
 
-ENV PATH="/usr/games:${PATH}"
+ENV PATH="/usr/bin:/usr/games:${PATH}"
