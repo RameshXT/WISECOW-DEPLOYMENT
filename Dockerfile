@@ -6,7 +6,11 @@ RUN apt-get update && apt-get install -y \
     fortune \
     netcat-openbsd \
     coreutils \
+    net-tools \
+    iputils-ping \
     procps
+
+RUN apt-get install -y sleep cat || true
 
 RUN rm -rf /var/lib/apt/lists/*
 
@@ -19,5 +23,3 @@ WORKDIR /app
 EXPOSE 4499
 
 CMD ["/usr/bin/bash", "/app/wisecow.sh"]
-
-ENV PATH="/usr/bin:/usr/games:${PATH}"

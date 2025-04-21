@@ -4,7 +4,7 @@ metadata:
   name: wisecow-ingress
 spec:
   rules:
-    - host: yourdomain.com
+    - host: wisecow.com
       http:
         paths:
           - path: /
@@ -16,5 +16,5 @@ spec:
                   number: 443
   tls:
     - hosts:
-        - yourdomain.com
+        - wisecow.com
       secretName: wisecow-tls
