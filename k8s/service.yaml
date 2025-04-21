@@ -3,10 +3,10 @@ kind: Service
 metadata:
   name: wisecow-service
 spec:
+  type: NodePort
   selector:
     app: wisecow
   ports:
-    - protocol: TCP
-      port: 4499
+    - port: 4499
       targetPort: 4499
-  type: LoadBalancer  # Or use NodePort for non-production clusters
+      nodePort: 32455
