@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/sh
 
 PORT=4499
 
