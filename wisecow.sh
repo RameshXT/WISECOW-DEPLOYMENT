@@ -1,46 +1,30 @@
 #!/usr/bin/env bash
 
-SRVPORT=4499
-RSPFILE=response
-
-rm -f $RSPFILE
-mkfifo $RSPFILE
-
-get_api() {
-	read line
-	echo $line
-}
-
-handleRequest() {
-    # 1) Process the request
-	get_api
-	mod=`fortune`
-
-cat <<EOF > $RSPFILE
-HTTP/1.1 200
-
-
-<pre>`cowsay $mod`</pre>
-EOF
-}
+PORT=4499
 
 prerequisites() {
-	command -v cowsay >/dev/null 2>&1 &&
-	command -v fortune >/dev/null 2>&1 || 
-		{ 
-			echo "Install prerequisites."
-			exit 1
-		}
+	command -v cowsay >/dev/null 2>&1 && command -v fortune >/dev/null 2>&1 || {
+		echo "Missing dependencies!"
+		exit 1
+	}
+}
+
+handle_connection() {
+	while true; do
+		{
+			echo -e "HTTP/1.1 200 OK\r"
+			echo -e "Content-Type: text/html\r\n"
+			echo "<pre>"
+			cowsay "$(fortune)"
+			echo "</pre>"
+		} | nc -l -p "$PORT" -N
+	done
 }
 
 main() {
 	prerequisites
-	echo "Wisdom served on port=$SRVPORT..."
-
-	while [ 1 ]; do
-		cat $RSPFILE | nc -lN $SRVPORT | handleRequest
-		sleep 0.01
-	done
+	echo "🚀 Serving wisdom at http://localhost:$PORT"
+	handle_connection
 }
 
 main
