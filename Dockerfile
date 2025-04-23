@@ -1,18 +1,22 @@
-FROM debian:bullseye-slim
+FROM ubuntu:22.04
 
-RUN apt-get update && \
-    apt-get install -y bash fortune cowsay netcat && \
-    apt-get clean && \
+RUN apt-get update && apt-get install -y \
+    bash \
+    cowsay \
+    fortune \
+    netcat-openbsd \
+    coreutils \
+    net-tools \
+    iputils-ping \
+    procps && \
     rm -rf /var/lib/apt/lists/*
 
-RUN ln -sf /bin/bash /bin/sh
+COPY wisecow.sh /app/wisecow.sh
+
+RUN chmod +x /app/wisecow.sh
 
 WORKDIR /app
 
-COPY . .
-
-RUN chmod +x wisecow.sh
-
 EXPOSE 4499
 
-CMD ["bash", "/app/wisecow.sh"]
+CMD ["/bin/bash", "/app/wisecow.sh"]
