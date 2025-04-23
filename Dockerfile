@@ -1,22 +1,17 @@
-FROM ubuntu:22.04
+FROM debian:bullseye-slim
 
-RUN apt-get update && apt-get install -y \
-    bash \
-    cowsay \
-    fortune \
-    netcat-openbsd \
-    coreutils \
-    net-tools \
-    iputils-ping \
-    procps && \
-    rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y cowsay fortune netcat-openbsd
+
+RUN  rm -rf /var/lib/apt/lists/*
 
 COPY wisecow.sh /app/wisecow.sh
 
-RUN chmod +x /app/wisecow.sh
-
 WORKDIR /app
+
+RUN chmod +x wisecow.sh
 
 EXPOSE 4499
 
-CMD ["/bin/bash", "/app/wisecow.sh"]
+CMD ["./wisecow.sh"]
+
+ENV PATH="/usr/games:${PATH}"
