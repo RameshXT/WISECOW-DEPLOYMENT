@@ -5,7 +5,7 @@ metadata:
   labels:
     app: wisecow
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: wisecow
@@ -15,19 +15,7 @@ spec:
         app: wisecow
     spec:
       containers:
-        - name: wisecow-container
-          image: IMAGE_TAG
-          imagePullPolicy: Always
-          ports:
-            - containerPort: 4499
-          resources:
-            limits:
-              memory: "512Mi"
-              cpu: "500m"
-            requests:
-              memory: "256Mi"
-              cpu: "250m"
-          env:
-            - name: PATH
-              value: "/bin:/usr/bin:/usr/games:/usr/sbin:${PATH}"
-          # command: ["/bin/bash", "/app/wisecow.sh"]
+      - name: wisecow
+        image: IMAGE_TAG
+        ports:
+        - containerPort: 4499

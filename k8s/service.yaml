@@ -9,4 +9,4 @@ spec:
   ports:
     - port: 4499
       targetPort: 4499
-      nodePort: 32455
+      nodePort: 31507
