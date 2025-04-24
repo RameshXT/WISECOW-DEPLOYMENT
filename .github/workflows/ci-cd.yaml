@@ -3,7 +3,7 @@ name: CI/CD Pipeline
 on:
   push:
     branches:
-      - stop
+      - wisecow
 
 jobs:
   build_and_deploy:
@@ -11,7 +11,7 @@ jobs:
 
     steps:
       - name: CODE CHECKOUT
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: SET UP DOCKER BUILDx
         uses: docker/setup-buildx-action@v3
@@ -22,8 +22,12 @@ jobs:
           echo ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
           echo "Logged in to Docker Hub."
       
+      - name: VERIFY DOCKER LOGIN
+        run: |
+          docker info
+
       - name: BUILD AND PUSH DOCKER IMAGE
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v5.0.0
         with:
           push: true
           tags: rameshxt/wisecow:v1.0.${{ github.run_number }}
@@ -33,63 +37,71 @@ jobs:
         run: echo "IMAGE_TAG=rameshxt/wisecow:v1.0.${{ github.run_number }}" >> $GITHUB_ENV
       
       - name: SSH into EC2 and deploy
-        uses: appleboy/ssh-action@v0.1.5
+        uses: appleboy/ssh-action@v0.1.9
         with:
           host: ${{ secrets.EC2_IP }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           envs: IMAGE_TAG
           script: |
+            # Exit immediately if a command fails
             set -euo pipefail
+            
+            echo "Checking SSH connectivity..."
+            ssh -o ConnectTimeout=10 -q -T ${EC2_USER}@${EC2_IP} exit || { echo "SSH connection failed"; exit 1; }
+            echo "SSH connectivity successful!"
             echo "IMAGE_TAG is: $IMAGE_TAG"
 
-
-            # 1. CLEAN EC2 INSTANCE (Preserve Minikube)
-            echo "Cleaning up old project files and containers..."
-
-
-            # Remove old project directory
-            if [ -d "/home/ec2-user/WISECOW-DEPLOYMENT" ]; then
-              echo "Removing old project directory..."
-              sudo rm -rf /home/ec2-user/WISECOW-DEPLOYMENT
+            # Step 1: Clone or pull the latest version of the repository
+            echo "Checking if the project directory exists..."
+            
+            if [ ! -d "/home/ec2-user/WISECOW-DEPLOYMENT" ]; then
+              echo "Cloning WISECOW-DEPLOYMENT repository..."
+              git clone https://github.com/RameshXT/WISECOW-DEPLOYMENT.git
             else
-              echo "No old project directory to remove."
+              echo "Project directory exists, pulling latest changes..."
+              cd /home/ec2-user/WISECOW-DEPLOYMENT && git pull
             fi
 
-
-            # Stop and remove all containers except 'minikube'
+            # Step 2: Stop and remove all containers except 'minikube'
             echo "Stopping and removing non-minikube containers..."
-            docker ps -a --format '{{.ID}} {{.Names}}' | grep -v minikube | awk '{print $1}' | xargs -r docker stop || true
-            docker ps -a --format '{{.ID}} {{.Names}}' | grep -v minikube | awk '{print $1}' | xargs -r docker rm || true
+            docker ps -a --format '{{.ID}} {{.Names}}' | \
+              awk '$2 != "minikube" {print $1}' | \
+              while read container_id; do
+                echo "Stopping container $container_id"
+                docker stop $container_id
+                echo "Removing container $container_id"
+                docker rm $container_id
+              done
 
-
-            # Remove all images except 'gcr.io/k8s-minikube/kicbase:v0.0.46'
+            # Step 3: Remove all Docker images except the one for 'minikube'
             echo "Removing non-essential Docker images..."
-            docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}' | grep -v 'gcr.io/k8s-minikube/kicbase:v0.0.46' | awk '{print $2}' | xargs -r docker rmi -f || true
+            docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}' | \
+              awk '$1 != "gcr.io/k8s-minikube/kicbase:v0.0.46" {print $2}' | \
+              while read image_id; do
+                echo "Removing image $image_id"
+                docker rmi -f $image_id
+              done
 
-
-            ###### 2. CLONE REPOSITORY
-            echo "Cloning WISECOW-DEPLOYMENT repository..."
-            git clone https://github.com/RameshXT/WISECOW-DEPLOYMENT.git
-
-      
-            ###### 3. UPDATE DEPLOYMENT FILE WITH IMAGE TAG
+            # Step 4: Update deployment.yaml with the new image tag
             echo "Updating image tag in deployment.yaml..."
             cd /home/ec2-user/WISECOW-DEPLOYMENT
             chmod +x image-updater.sh
             bash image-updater.sh "$IMAGE_TAG"
 
-
-            ##### 4. APPLY KUBERNETES MANIFESTS
+            # Step 5: Delete old Kubernetes resources not needed anymore
             echo "Deleting old Kubernetes resources..."
-            kubectl delete deployment wisecow-deployment || true
-            kubectl delete service wisecow-service || true
+            kubectl delete deployment wisecow-deployment || { echo "Error deleting deployment"; exit 1; }
+            kubectl delete service wisecow-service || { echo "Error deleting service"; exit 1; }
+            kubectl delete pod -l app=wisecow || { echo "Error deleting pods"; exit 1; }
 
+            # Step 6: Deploy the new Kubernetes resources
+            echo "Checking Kubernetes cluster availability..."
+            kubectl cluster-info || { echo "Error: Kubernetes cluster not reachable"; exit 1; }
 
             echo "Deploying application on Kubernetes..."
-            kubectl apply -f /home/ec2-user/WISECOW-DEPLOYMENT/k8s/deployment.yaml
-            kubectl apply -f /home/ec2-user/WISECOW-DEPLOYMENT/k8s/service.yaml
+            kubectl apply -f /home/ec2-user/WISECOW-DEPLOYMENT/k8s/deployment.yaml || { echo "Error applying deployment"; exit 1; }
+            kubectl apply -f /home/ec2-user/WISECOW-DEPLOYMENT/k8s/service.yaml || { echo "Error applying service"; exit 1; }
 
-
+            # Deployment complete message
             echo "✅ Deployment completed successfully."
-
