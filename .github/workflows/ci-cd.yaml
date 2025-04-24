@@ -36,20 +36,15 @@ jobs:
       - name: SET IMAGE_TAG
         run: echo "IMAGE_TAG=rameshxt/wisecow:v1.0.${{ github.run_number }}" >> $GITHUB_ENV
       
-      - name: SSH INTO EC2 INSTANCE AND DEPLOY
-        uses: appleboy/ssh-action@v0.1.9
+      - name: SSH into EC2 and deploy
+        uses: appleboy/ssh-action@v0.1.5
         with:
           host: ${{ secrets.EC2_IP }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           envs: IMAGE_TAG
           script: |
-            # Exit immediately if a command fails
-            set -euo pipefail
-            
-            echo "Checking SSH connectivity..."
-            ssh -o ConnectTimeout=10 -q -T ${EC2_USER}@${EC2_IP} exit || { echo "SSH connection failed"; exit 1; }
-            echo "SSH connectivity successful!"
+            set -e
             echo "IMAGE_TAG is: $IMAGE_TAG"
 
             # Step 1: Clone or pull the latest version of the repository
