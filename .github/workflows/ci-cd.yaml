@@ -86,9 +86,10 @@ jobs:
 
             # Step 5: Delete old Kubernetes resources not needed anymore
             echo "Deleting old Kubernetes resources..."
-            kubectl delete deployment wisecow-deployment || { echo "Error deleting deployment"; exit 1; }
-            kubectl delete service wisecow-service || { echo "Error deleting service"; exit 1; }
-            kubectl delete pod -l app=wisecow || { echo "Error deleting pods"; exit 1; }
+            kubectl get deployment wisecow-deployment &>/dev/null && kubectl delete deployment wisecow-deployment || echo "Deployment not found, skipping deletion."
+            kubectl get service wisecow-service &>/dev/null && kubectl delete service wisecow-service || echo "Service not found, skipping deletion."
+            kubectl get pods -l app=wisecow &>/dev/null && kubectl delete pod -l app=wisecow || echo "Pods not found, skipping deletion."
+
 
             # Step 6: Deploy the new Kubernetes resources
             echo "Checking Kubernetes cluster availability..."
