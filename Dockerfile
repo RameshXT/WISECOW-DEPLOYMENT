@@ -2,19 +2,14 @@ FROM ubuntu:latest
 
 WORKDIR /app
 
-RUN apt-get update  \
-    && apt-get install -y cowsay \
-    && apt-get install -y fortune-mod \
-    && apt-get install -y netcat-traditional \
-    && apt-get install -y netcat-openbsd \
-    && apt-get install -y bash
+RUN apt-get update \
+    && apt-get install -y cowsay fortune-mod netcat-traditional netcat-openbsd bash
 
 COPY wisecow.sh /app/wisecow.sh
-
-RUN chmod +x wisecow.sh
+RUN chmod +x /app/wisecow.sh && ls -la /app
 
 EXPOSE 4499
 
-ENTRYPOINT ["sh", "-c", "/app/wisecow.sh"]
+ENTRYPOINT ["/app/wisecow.sh"]
 
 ENV PATH="/usr/games:${PATH}"
