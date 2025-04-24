@@ -56,6 +56,7 @@ jobs:
             else
               echo "Project directory exists, pulling latest changes..."
               cd /home/ec2-user/WISECOW-DEPLOYMENT && git pull
+              dos2unix wisecow.sh
             fi
 
             # Step 2: Stop and remove all containers except 'minikube'
