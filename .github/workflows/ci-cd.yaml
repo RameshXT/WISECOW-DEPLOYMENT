@@ -33,10 +33,10 @@ jobs:
           tags: rameshxt/wisecow:v1.0.${{ github.run_number }}
           context: .
 
-      - name: Set IMAGE_TAG using Git SHA
+      - name: SET IMAGE_TAG
         run: echo "IMAGE_TAG=rameshxt/wisecow:v1.0.${{ github.run_number }}" >> $GITHUB_ENV
       
-      - name: SSH into EC2 and deploy
+      - name: SSH INTO EC2 INSTANCE AND DEPLOY
         uses: appleboy/ssh-action@v0.1.9
         with:
           host: ${{ secrets.EC2_IP }}
