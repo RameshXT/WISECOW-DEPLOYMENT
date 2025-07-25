@@ -31,3 +31,33 @@ jobs:
 
       - name: IMAGE UPDATER
         run: echo "IMAGE_TAG=rameshxt/wisecow:v2.0.${{ github.run_number }}" >> $GITHUB_ENV
+
+      - name: SSH into EC2 and deploy
+        uses: appleboy/ssh-action@v0.1.5
+        with:
+          host: ${{ secrets.EC2_IP }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: IMAGE_TAG
+          script: |
+            set -e
+            echo "IMAGE_TAG is: $IMAGE_TAG"
+
+            cd /home/ec2-user
+
+            if [ ! -d "WISECOW-DEPLOYMENT" ]; then
+              echo "Cloning WISECOW-DEPLOYMENT repository..."
+              git clone https://github.com/RameshXT/WISECOW-DEPLOYMENT.git
+            else
+              echo "Project directory exists. Pulling latest changes..."
+              
+              cd WISECOW-DEPLOYMENT
+              
+              git reset --hard HEAD
+              git clean -fd
+              
+              git pull origin wisecow
+            fi
+
+            cd /home/ec2-user/WISECOW-DEPLOYMENT
+            dos2unix wisecow.sh
