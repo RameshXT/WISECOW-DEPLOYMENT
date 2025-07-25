@@ -28,3 +28,6 @@ jobs:
           context: .
           push: true
           tags: rameshxt/wisecow:v2.0.${{ github.run_number }}
+
+      - name: IMAGE UPDATER
+        run: echo "IMAGE_TAG=rameshxt/wisecow:v2.0.${{ github.run_number }}" >> $GITHUB_ENV
