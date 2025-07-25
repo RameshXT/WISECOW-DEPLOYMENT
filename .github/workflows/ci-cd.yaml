@@ -21,3 +21,10 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: BUILD AND PUSH DOCKER IMAGE
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: rameshxt/wisecow:v2.0.${{ github.run_number }}
