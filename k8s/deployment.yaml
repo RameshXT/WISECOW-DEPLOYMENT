@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: wisecow
-          image: rameshxt/wisecow:v1.0.54
+          image: IMAGE_TAG
           ports:
             - containerPort: 4499
             

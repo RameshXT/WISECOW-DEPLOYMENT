@@ -3,7 +3,7 @@ name: CI/CD Pipeline
 on:
   push:
     branches:
-      - cow
+      - wisecow
 
 jobs:
   build_and_deploy:
@@ -16,89 +16,8 @@ jobs:
       - name: SET UP DOCKER BUILDx
         uses: docker/setup-buildx-action@v3
 
-      - name: LOGIN DOCKER HUB
-        run: |
-          echo "Logging into Docker Hub.."
-          echo ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
-          echo "Logged in to Docker Hub."
-      
-      - name: VERIFY DOCKER LOGIN
-        run: |
-          docker info
-
-      - name: BUILD AND PUSH DOCKER IMAGE
-        uses: docker/build-push-action@v5.0.0
+      - name: Docker Login (Official Action)
+        uses: docker/login-action@v3
         with:
-          push: true
-          tags: rameshxt/wisecow:v1.0.${{ github.run_number }}
-          context: .
-
-      - name: SET IMAGE_TAG
-        run: echo "IMAGE_TAG=rameshxt/wisecow:v1.0.${{ github.run_number }}" >> $GITHUB_ENV
-      
-      - name: SSH into EC2 and deploy
-        uses: appleboy/ssh-action@v0.1.5
-        with:
-          host: ${{ secrets.EC2_IP }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          envs: IMAGE_TAG
-          script: |
-            set -e
-            echo "IMAGE_TAG is: $IMAGE_TAG"
-
-            # Step 1: Clone or pull the latest version of the repository
-            echo "Checking if the project directory exists..."
-            
-            if [ ! -d "/home/ec2-user/WISECOW-DEPLOYMENT" ]; then
-              echo "Cloning WISECOW-DEPLOYMENT repository..."
-              git clone https://github.com/RameshXT/WISECOW-DEPLOYMENT.git
-            else
-              echo "Project directory exists, pulling latest changes..."
-              cd /home/ec2-user/WISECOW-DEPLOYMENT && git pull
-              dos2unix wisecow.sh
-            fi
-
-            # Step 2: Stop and remove all containers except 'minikube'
-            echo "Stopping and removing non-minikube containers..."
-            docker ps -a --format '{{.ID}} {{.Names}}' | \
-              awk '$2 != "minikube" {print $1}' | \
-              while read container_id; do
-                echo "Stopping container $container_id"
-                docker stop $container_id
-                echo "Removing container $container_id"
-                docker rm $container_id
-              done
-
-            # Step 3: Remove all Docker images except the one for 'minikube'
-            echo "Removing non-essential Docker images..."
-            docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}' | \
-              awk '$1 != "gcr.io/k8s-minikube/kicbase:v0.0.46" {print $2}' | \
-              while read image_id; do
-                echo "Removing image $image_id"
-                docker rmi -f $image_id
-              done
-
-            # Step 4: Update deployment.yaml with the new image tag
-            echo "Updating image tag in deployment.yaml..."
-            cd /home/ec2-user/WISECOW-DEPLOYMENT
-            chmod +x image-updater.sh
-            bash image-updater.sh "$IMAGE_TAG"
-
-            # Step 5: Delete old Kubernetes resources not needed anymore
-            echo "Deleting old Kubernetes resources..."
-            kubectl get deployment wisecow-deployment &>/dev/null && kubectl delete deployment wisecow-deployment || echo "Deployment not found, skipping deletion."
-            kubectl get service wisecow-service &>/dev/null && kubectl delete service wisecow-service || echo "Service not found, skipping deletion."
-            kubectl get pods -l app=wisecow &>/dev/null && kubectl delete pod -l app=wisecow || echo "Pods not found, skipping deletion."
-
-
-            # Step 6: Deploy the new Kubernetes resources
-            echo "Checking Kubernetes cluster availability..."
-            kubectl cluster-info || { echo "Error: Kubernetes cluster not reachable"; exit 1; }
-
-            echo "Deploying application on Kubernetes..."
-            kubectl apply -f /home/ec2-user/WISECOW-DEPLOYMENT/k8s/deployment.yaml || { echo "Error applying deployment"; exit 1; }
-            kubectl apply -f /home/ec2-user/WISECOW-DEPLOYMENT/k8s/service.yaml || { echo "Error applying service"; exit 1; }
-
-            # Deployment complete message
-            echo "✅ Deployment completed successfully."
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
