@@ -29,8 +29,13 @@ jobs:
           push: true
           tags: rameshxt/wisecow:v2.0.${{ github.run_number }}
 
-      - name: IMAGE UPDATER
+      - name: Set IMAGE_TAG
         run: echo "IMAGE_TAG=rameshxt/wisecow:v2.0.${{ github.run_number }}" >> $GITHUB_ENV
+
+      - name: Update K8s Deployment File
+        run: |
+          chmod +x ./image-updater.sh
+          ./image-updater.sh "$IMAGE_TAG"
 
       - name: SSH into EC2 and deploy
         uses: appleboy/ssh-action@v0.1.5
