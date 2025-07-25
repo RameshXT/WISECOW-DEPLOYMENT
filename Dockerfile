@@ -1,15 +1,18 @@
-FROM ubuntu:latest
+FROM ubuntu:20.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PATH="/usr/games:${PATH}"
+
+RUN apt-get update && \
+    apt-get install -y cowsay fortune-mod netcat bash && \
+    apt-get clean
 
 WORKDIR /app
 
-RUN apt-get update \
-    && apt-get install -y cowsay fortune-mod netcat-traditional netcat-openbsd bash
+COPY wisecow.sh .
 
-COPY wisecow.sh /app/wisecow.sh
-RUN chmod +x /app/wisecow.sh && ls -la /app
+RUN chmod +x wisecow.sh
 
 EXPOSE 4499
 
-ENTRYPOINT ["/app/wisecow.sh"]
-
-ENV PATH="/usr/games:${PATH}"
+CMD ["./wisecow.sh"]

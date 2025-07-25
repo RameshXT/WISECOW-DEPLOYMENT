@@ -5,7 +5,7 @@ metadata:
   labels:
     app: wisecow
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: wisecow
@@ -15,7 +15,8 @@ spec:
         app: wisecow
     spec:
       containers:
-      - name: wisecow
-        image: IMAGE_TAG
-        ports:
-        - containerPort: 4499
+        - name: wisecow
+          image: rameshxt/wisecow:v1.0.54
+          ports:
+            - containerPort: 4499
+            
