@@ -48,6 +48,7 @@ jobs:
             set -e
             echo "IMAGE_TAG is: $IMAGE_TAG"
 
+            #1 CLONE OR PULL
             cd /home/ec2-user
 
             if [ ! -d "WISECOW-DEPLOYMENT" ]; then
@@ -66,3 +67,9 @@ jobs:
 
             cd /home/ec2-user/WISECOW-DEPLOYMENT
             dos2unix wisecow.sh
+
+            #2 IMAGE UPDATER
+            echo "Updating image tag in deployment.yaml..."
+            cd /home/ec2-user/WISECOW-DEPLOYMENT
+            chmod +x image-updater.sh
+            bash image-updater.sh "$IMAGE_TAG"
